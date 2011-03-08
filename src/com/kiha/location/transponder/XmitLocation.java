@@ -1,5 +1,6 @@
 package com.kiha.location.transponder;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.Calendar;
@@ -7,17 +8,25 @@ import java.util.Date;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpVersion;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.params.HttpProtocolParams;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.json.JSONTokener;
 
 import android.app.Activity;
 import android.content.Context;
@@ -38,7 +47,7 @@ public class XmitLocation extends Activity
 	private LocationListener _locationListener;
 	private long _updateInterval = SAMPLE_INTERVAL; // Millisecs
 	private float _minDistance = 5; // Meters
-	
+	private TextView _tv;
 	
 	@Override
 	public void onCreate (Bundle savedInstanceState)
@@ -50,13 +59,16 @@ public class XmitLocation extends Activity
 		_locationListener = new LocationListener() {
 			public void onLocationChanged(Location location) {
 				// Called when a new location is found by the network location provider.
-				sendLocation(location);
+				getActions(location);
 		    }
 			
 		    public void onStatusChanged(String provider, int status, Bundle extras) {}
 		    public void onProviderEnabled(String provider) {}
 		    public void onProviderDisabled(String provider) {}
 		};
+
+		_tv = new TextView(this);
+		setContentView(_tv);
 	}
 	
 	@Override
@@ -92,7 +104,7 @@ public class XmitLocation extends Activity
 		locationManager.removeUpdates(_locationListener);
 	}
 	
-	protected void sendLocation (Location curLocation)
+	protected JSONArray getActions (Location curLocation)
 	{
 		Log.d(XmitLocation.class.getCanonicalName(), "****** sendLocation() called");
 
@@ -100,19 +112,20 @@ public class XmitLocation extends Activity
 		Location lastKnownNetworkLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
 		Location lastKnownGPSLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
 		Location bestLocation;
-		String isBetterLocation;
+		String whichLocation;
 		
 		if (isBetterLocation(curLocation, lastKnownGPSLocation) || isBetterLocation(curLocation, lastKnownNetworkLocation)) {
 			bestLocation = curLocation;
-			isBetterLocation = "Using cur location";
+			whichLocation = "Using cur location";
 		} else {
 			bestLocation = isBetterLocation(lastKnownGPSLocation, lastKnownNetworkLocation) ? lastKnownGPSLocation : lastKnownNetworkLocation;
-			isBetterLocation = "Using prev location";
+			whichLocation = "Using prev location";
 		}
 
 		int responseCode = 500;
 		String url = "";
-
+		JSONArray result = null;
+		
 		try {
 			url = buildUrl(bestLocation);
 			Log.d(XmitLocation.class.getCanonicalName(), "*** sendLocation() trying url=" + url);
@@ -122,21 +135,41 @@ public class XmitLocation extends Activity
 	        HttpResponse response = client.execute(request);
 			Log.d(XmitLocation.class.getCanonicalName(), "*** sendLocation() after execute()");
 	        responseCode = response.getStatusLine().getStatusCode();
+	        result = parseResponse(response);
+	        displayResult(whichLocation, url, responseCode, result);
 	    } catch (Exception e) {
 	    	// FIXME
 	    	Log.d(XmitLocation.class.getCanonicalName(), "OOPS", e);
 			Log.d(XmitLocation.class.getCanonicalName(), "*** sendLocation() " + e.getMessage());
+			result = new JSONArray();
 		}
-
-	    Calendar cal = Calendar.getInstance();
-	    Date date = cal.getTime();
-	    String status = date.toLocaleString() + ":  " + isBetterLocation + " url=" + url + " -> " + responseCode; 
-	    Log.d(XmitLocation.class.getCanonicalName(), "*** sendLocation() status=" + status);
-	    TextView tv = new TextView(this);
-		tv.setText(status);
-		setContentView(tv);
+	    
+	    return result;
 	}
 	
+	protected JSONArray parseResponse (HttpResponse response)
+		throws ClientProtocolException, IOException, JSONException
+	{
+		ResponseHandler<String> responseHandler = new BasicResponseHandler();
+        String body = responseHandler.handleResponse(response);
+        return new JSONArray(body);
+	}
+	
+	protected void displayResult (String whichLocation, String url, int responseCode, JSONArray result) throws JSONException
+	{
+	    Calendar cal = Calendar.getInstance();
+	    Date date = cal.getTime();
+	    StringBuilder status = new StringBuilder();
+	    status.append(date.toLocaleString()).append(":  ").append(whichLocation).append(" url=").append(url).append(" -> ").append(responseCode).append("\n\n");
+	    for (int i=0; i < result.length(); ++i) {
+	    	status.append(result.getJSONObject(i).getString("label")).append("\n");
+	    }
+	    
+	    String output = status.toString();
+	    Log.d(XmitLocation.class.getCanonicalName(), "*** sendLocation() status=" + output);
+		_tv.setText(output);
+	}
+		
 	protected String buildUrl (Location location)
 		throws UnsupportedEncodingException
 	{
