@@ -142,14 +142,24 @@ public class XmitLocation extends Activity
 	{
 		TelephonyManager tMgr = (TelephonyManager) this.getSystemService(Context.TELEPHONY_SERVICE);
 		
-		return SERVICE_URL +
-               "venue-latitude=" + URLEncoder.encode(Double.toString(location.getLatitude()), "UTF-8") +
-               "&venue-longitude=" + URLEncoder.encode(Double.toString(location.getLongitude()), "UTF-8") +
-               "&altitude=" + URLEncoder.encode(Double.toString(location.getAltitude()), "UTF-8") +
-               "&speed=" + URLEncoder.encode(Float.toString(location.getSpeed()), "UTF-8") +
-               "&src=" + URLEncoder.encode(location.getProvider(), "UTF-8") +
-               "&deviceId=" + URLEncoder.encode(tMgr.getDeviceId(), "UTF-8") +
-               "&timestamp=" + URLEncoder.encode(Long.toString(System.currentTimeMillis()), "UTF-8");
+		StringBuilder sb = new StringBuilder();
+		sb.append(SERVICE_URL);
+		
+        sb.append("venue-latitude=");
+        sb.append(URLEncoder.encode(Double.toString(location.getLatitude()), "UTF-8"));
+        sb.append("&venue-longitude=");
+        sb.append(URLEncoder.encode(Double.toString(location.getLongitude()), "UTF-8"));
+        sb.append("&altitude=");
+        sb.append(URLEncoder.encode(Double.toString(location.getAltitude()), "UTF-8"));
+        sb.append("&speed=");
+        sb.append(URLEncoder.encode(Float.toString(location.getSpeed()), "UTF-8"));
+        sb.append("&src=");
+        sb.append(URLEncoder.encode(location.getProvider(), "UTF-8"));
+        sb.append("&deviceId=");
+        sb.append(URLEncoder.encode(tMgr.getDeviceId(), "UTF-8"));
+        sb.append("&timestamp=");
+        sb.append(URLEncoder.encode(Long.toString(System.currentTimeMillis()), "UTF-8"));
+        return sb.toString();
 	}
 
 	// From the Android sample location app code using a cached last known good location
