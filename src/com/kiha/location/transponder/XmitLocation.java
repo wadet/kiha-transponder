@@ -12,7 +12,6 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.params.HttpClientParams;
 import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
@@ -43,14 +42,8 @@ import android.webkit.WebView;
 
 public class XmitLocation extends Activity
 {
-	// FIXME:  Move these into a config file
-	private static final int SAMPLE_INTERVAL = 1000 * 15; // Millisecs
-	private static final String SERVICE_URL = "http://dev.kihatest.com:8080/api/v1/actions?";
-	private static final int SOCKET_TIMEOUT = 5000;
-	private static final int CONNECTION_TIMEOUT = 5000;
+	private AppConfiguration _appConfig;
 	private LocationListener _locationListener;
-	private long _updateInterval = SAMPLE_INTERVAL; // Millisecs
-	private float _minDistance = 5; // Meters
 	private WebView _webview;
 	
 	
@@ -60,6 +53,8 @@ public class XmitLocation extends Activity
 		Log.d(XmitLocation.class.getCanonicalName(), "****** onCreate() called");
 		super.onCreate(savedInstanceState);
 
+		_appConfig = new AppConfiguration(this.getPreferences(Context.MODE_PRIVATE));
+		
 		// Define a listener that responds to location updates
 		_locationListener = new LocationListener() {
 			public void onLocationChanged(Location location) {
@@ -99,8 +94,8 @@ public class XmitLocation extends Activity
 	{
 		LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
-		locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, _updateInterval, _minDistance, _locationListener);		
-		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, _updateInterval, _minDistance, _locationListener);		
+		locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, _appConfig.getSampleInterval(), _appConfig.getMinDistance(), _locationListener);		
+		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, _appConfig.getSampleInterval(), _appConfig.getMinDistance(), _locationListener);		
 	}
 	
 	protected void unregisterListeners ()
@@ -159,8 +154,8 @@ public class XmitLocation extends Activity
 		HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
 		HttpProtocolParams.setContentCharset(params, "utf-8");
 		HttpProtocolParams.setUserAgent(params, "Kiha GPS App");
-		HttpConnectionParams.setSoTimeout(params, SOCKET_TIMEOUT);
-		HttpConnectionParams.setConnectionTimeout(params, CONNECTION_TIMEOUT);
+		HttpConnectionParams.setSoTimeout(params, _appConfig.getSocketTimeout());
+		HttpConnectionParams.setConnectionTimeout(params, _appConfig.getConnectionTimeout());
 		params.setBooleanParameter("http.protocol.expect-continue", false);
 		
 		SchemeRegistry registry = new SchemeRegistry();
@@ -215,7 +210,7 @@ public class XmitLocation extends Activity
 		TelephonyManager tMgr = (TelephonyManager) this.getSystemService(Context.TELEPHONY_SERVICE);
 		
 		StringBuilder sb = new StringBuilder();
-		sb.append(SERVICE_URL);
+		sb.append(_appConfig.getLocationServiceUrl());
 		
         sb.append("venue-latitude=");
         sb.append(URLEncoder.encode(Double.toString(location.getLatitude()), "UTF-8"));
@@ -244,8 +239,8 @@ public class XmitLocation extends Activity
 
 	    // Check whether the new location fix is newer or older
 	    long timeDelta = location.getTime() - currentBestLocation.getTime();
-	    boolean isSignificantlyNewer = timeDelta > SAMPLE_INTERVAL;
-	    boolean isSignificantlyOlder = timeDelta < -SAMPLE_INTERVAL;
+	    boolean isSignificantlyNewer = timeDelta > _appConfig.getSampleInterval();
+	    boolean isSignificantlyOlder = timeDelta < -_appConfig.getSampleInterval();
 	    boolean isNewer = timeDelta > 0;
 
 	    // If it's been more than two minutes since the current location, use the new location
