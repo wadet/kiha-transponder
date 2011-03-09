@@ -26,7 +26,6 @@ import org.apache.http.params.HttpProtocolParams;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.JSONTokener;
 
 import android.app.Activity;
 import android.content.Context;
@@ -35,9 +34,9 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.telephony.TelephonyManager;
+import android.text.TextUtils;
 import android.util.Log;
 import android.webkit.WebView;
-import android.widget.TextView;
 
 
 public class XmitLocation extends Activity
@@ -179,8 +178,11 @@ public class XmitLocation extends Activity
 	    Calendar cal = Calendar.getInstance();
 	    Date date = cal.getTime();
 	    StringBuilder html = new StringBuilder();
+	    StringBuilder temp = new StringBuilder();
 	    html.append("<html><body bgcolor=\"lime\">");
-	    html.append(date.toLocaleString()).append(":  ").append(whichLocation).append(" url=").append(url).append(" -> ").append(responseCode).append("<br/><br/>");
+	    temp.append(date.toLocaleString()).append(":  ").append(whichLocation).append(" url=").append(url).append(" -> ").append(responseCode);
+	    html.append(TextUtils.htmlEncode(temp.toString()));
+	    html.append("<br/><br/>");
 	    html.append("<b>Relevant Actions</b><br/>");
 	    for (int i=0; i < result.length(); ++i) {
 	    	JSONObject action = result.getJSONObject(i);
