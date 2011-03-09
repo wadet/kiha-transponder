@@ -36,6 +36,7 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.telephony.TelephonyManager;
 import android.util.Log;
+import android.webkit.WebView;
 import android.widget.TextView;
 
 
@@ -47,7 +48,7 @@ public class XmitLocation extends Activity
 	private LocationListener _locationListener;
 	private long _updateInterval = SAMPLE_INTERVAL; // Millisecs
 	private float _minDistance = 5; // Meters
-	private TextView _tv;
+	private WebView _webview;
 	
 	@Override
 	public void onCreate (Bundle savedInstanceState)
@@ -67,8 +68,8 @@ public class XmitLocation extends Activity
 		    public void onProviderDisabled(String provider) {}
 		};
 
-		_tv = new TextView(this);
-		setContentView(_tv);
+		_webview = new WebView(this);
+		setContentView(_webview);
 	}
 	
 	@Override
@@ -146,6 +147,24 @@ public class XmitLocation extends Activity
 	    
 	    return result;
 	}
+
+	protected HttpClient getHttpClient ()
+	{
+		HttpParams params = new BasicHttpParams();
+		HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
+		HttpProtocolParams.setContentCharset(params, "utf-8");
+		HttpProtocolParams.setUserAgent(params, "Kiha GPS App");
+		params.setBooleanParameter("http.protocol.expect-continue", false);
+		
+		SchemeRegistry registry = new SchemeRegistry();
+		registry.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), 80));
+		final SSLSocketFactory sslSocketFactory = SSLSocketFactory.getSocketFactory();
+		sslSocketFactory.setHostnameVerifier(SSLSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
+		registry.register(new Scheme("https", sslSocketFactory, 443));
+		ThreadSafeClientConnManager manager = new ThreadSafeClientConnManager(params, registry);
+		
+		return new DefaultHttpClient(manager, params);
+	}
 	
 	protected JSONArray parseResponse (HttpResponse response)
 		throws ClientProtocolException, IOException, JSONException
@@ -159,15 +178,21 @@ public class XmitLocation extends Activity
 	{
 	    Calendar cal = Calendar.getInstance();
 	    Date date = cal.getTime();
-	    StringBuilder status = new StringBuilder();
-	    status.append(date.toLocaleString()).append(":  ").append(whichLocation).append(" url=").append(url).append(" -> ").append(responseCode).append("\n\n");
+	    StringBuilder html = new StringBuilder();
+	    html.append("<html><body bgcolor=\"lime\">");
+	    html.append(date.toLocaleString()).append(":  ").append(whichLocation).append(" url=").append(url).append(" -> ").append(responseCode).append("<br/><br/>");
+	    html.append("<b>Relevant Actions</b><br/>");
 	    for (int i=0; i < result.length(); ++i) {
-	    	status.append(result.getJSONObject(i).getString("label")).append("\n");
+	    	JSONObject action = result.getJSONObject(i);
+	    	JSONObject actionAttribs = action.getJSONObject("attributes");
+	    	String actionUrl = actionAttribs.getString("action-url");
+	    	html.append("<a href=\"").append(actionUrl).append("\">").append(result.getJSONObject(i).getString("label")).append("</a><br/>");
 	    }
 	    
-	    String output = status.toString();
+	    html.append("</body></html>");
+	    String output = html.toString();
 	    Log.d(XmitLocation.class.getCanonicalName(), "*** sendLocation() status=" + output);
-		_tv.setText(output);
+		_webview.loadData(output, "text/html", "UTF-8");
 	}
 		
 	protected String buildUrl (Location location)
@@ -247,23 +272,4 @@ public class XmitLocation extends Activity
 	    }
 	    return provider1.equals(provider2);
 	}
-	
-	public HttpClient getHttpClient ()
-	{
-		HttpParams params = new BasicHttpParams();
-		HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
-		HttpProtocolParams.setContentCharset(params, "utf-8");
-		HttpProtocolParams.setUserAgent(params, "Kiha GPS App");
-		params.setBooleanParameter("http.protocol.expect-continue", false);
-		
-		SchemeRegistry registry = new SchemeRegistry();
-		registry.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), 80));
-		final SSLSocketFactory sslSocketFactory = SSLSocketFactory.getSocketFactory();
-		sslSocketFactory.setHostnameVerifier(SSLSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
-		registry.register(new Scheme("https", sslSocketFactory, 443));
-		ThreadSafeClientConnManager manager = new ThreadSafeClientConnManager(params, registry);
-		
-		return new DefaultHttpClient(manager, params);
-	}
-
 }
