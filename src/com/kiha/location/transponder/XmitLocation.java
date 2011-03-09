@@ -12,6 +12,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.params.HttpClientParams;
 import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
@@ -20,6 +21,7 @@ import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.params.HttpProtocolParams;
 
@@ -43,11 +45,14 @@ public class XmitLocation extends Activity
 {
 	// FIXME:  Move these into a config file
 	private static final int SAMPLE_INTERVAL = 1000 * 15; // Millisecs
-	private static String SERVICE_URL = "http://dev.kihatest.com:8080/api/v1/actions?";
+	private static final String SERVICE_URL = "http://dev.kihatest.com:8080/api/v1/actions?";
+	private static final int SOCKET_TIMEOUT = 5000;
+	private static final int CONNECTION_TIMEOUT = 5000;
 	private LocationListener _locationListener;
 	private long _updateInterval = SAMPLE_INTERVAL; // Millisecs
 	private float _minDistance = 5; // Meters
 	private WebView _webview;
+	
 	
 	@Override
 	public void onCreate (Bundle savedInstanceState)
@@ -142,6 +147,7 @@ public class XmitLocation extends Activity
 	    	Log.d(XmitLocation.class.getCanonicalName(), "OOPS", e);
 			Log.d(XmitLocation.class.getCanonicalName(), "*** sendLocation() " + e.getMessage());
 			result = new JSONArray();
+			displayResult(whichLocation, url, 503, result);
 		}
 	    
 	    return result;
@@ -153,6 +159,8 @@ public class XmitLocation extends Activity
 		HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
 		HttpProtocolParams.setContentCharset(params, "utf-8");
 		HttpProtocolParams.setUserAgent(params, "Kiha GPS App");
+		HttpConnectionParams.setSoTimeout(params, SOCKET_TIMEOUT);
+		HttpConnectionParams.setConnectionTimeout(params, CONNECTION_TIMEOUT);
 		params.setBooleanParameter("http.protocol.expect-continue", false);
 		
 		SchemeRegistry registry = new SchemeRegistry();
@@ -173,7 +181,7 @@ public class XmitLocation extends Activity
         return new JSONArray(body);
 	}
 	
-	protected void displayResult (String whichLocation, String url, int responseCode, JSONArray result) throws JSONException
+	protected void displayResult (String whichLocation, String url, int responseCode, JSONArray result)
 	{
 	    Calendar cal = Calendar.getInstance();
 	    Date date = cal.getTime();
@@ -185,10 +193,14 @@ public class XmitLocation extends Activity
 	    html.append("<br/><br/>");
 	    html.append("<b>Relevant Actions</b><br/>");
 	    for (int i=0; i < result.length(); ++i) {
-	    	JSONObject action = result.getJSONObject(i);
-	    	JSONObject actionAttribs = action.getJSONObject("attributes");
-	    	String actionUrl = actionAttribs.getString("action-url");
-	    	html.append("<a href=\"").append(actionUrl).append("\">").append(result.getJSONObject(i).getString("label")).append("</a><br/>");
+	    	try {
+		    	JSONObject action = result.getJSONObject(i);
+		    	JSONObject actionAttribs = action.getJSONObject("attributes");
+		    	String actionUrl = actionAttribs.getString("action-url");
+		    	html.append("<a href=\"").append(actionUrl).append("\">").append(result.getJSONObject(i).getString("label")).append("</a><br/>");
+	    	} catch (JSONException e) {
+	    		html.append("Failed to parse JSON object ").append(i).append(e);
+	    	}
 	    }
 	    
 	    html.append("</body></html>");
@@ -215,7 +227,7 @@ public class XmitLocation extends Activity
         sb.append(URLEncoder.encode(Float.toString(location.getSpeed()), "UTF-8"));
         sb.append("&src=");
         sb.append(URLEncoder.encode(location.getProvider(), "UTF-8"));
-        sb.append("&deviceId=");
+        sb.append("&client-id=");
         sb.append(URLEncoder.encode(tMgr.getDeviceId(), "UTF-8"));
         sb.append("&timestamp=");
         sb.append(URLEncoder.encode(Long.toString(System.currentTimeMillis()), "UTF-8"));
