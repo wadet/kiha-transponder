@@ -84,10 +84,20 @@ public class XmitLocation extends Activity
 	public void onPause ()
 	{
 		super.onPause();
-		unregisterListeners();
+		if (_appConfig.getConserveBatteryMode()) {
+			unregisterListeners();
+		}
 		Log.d(XmitLocation.class.getCanonicalName(), "****** onPause() called");
 	}
 
+	@Override
+	public void onStop ()
+	{
+		super.onStop();
+		unregisterListeners();
+		Log.d(XmitLocation.class.getCanonicalName(), "****** onStop() called");
+	}
+	
 	// -----------------------------------------------------------------------
 	
 	protected void registerListeners ()

@@ -11,6 +11,7 @@ public class AppConfiguration
 	private static final int DEFAULT_SOCKET_TIMEOUT = 5000;
 	private static final int DEFAULT_CONNECTION_TIMEOUT = 5000;
 	private static final int DEFAULT_MIN_DISTANCE = 5; // Meters
+	private static final boolean DEFAULT_CONSERVE_BATTERY = false;
 	
 	public AppConfiguration (SharedPreferences prefs)
 	{
@@ -40,5 +41,10 @@ public class AppConfiguration
 	public int getMinDistance ()
 	{
 		return _prefs.getInt("min-gps-delta-distance", DEFAULT_MIN_DISTANCE);
+	}
+	
+	public boolean getConserveBatteryMode ()
+	{
+		return _prefs.getBoolean("conserve-battery", DEFAULT_CONSERVE_BATTERY);
 	}
 }
