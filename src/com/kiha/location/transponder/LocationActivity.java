@@ -113,6 +113,8 @@ public class LocationActivity extends Activity
 	
 	protected void registerReceiver ()
 	{
+		Toast.makeText(this, "Registering background updater", Toast.LENGTH_SHORT).show();
+
 		Intent intent = new Intent(this, AlarmReceiver.class);
 		_pi = PendingIntent.getBroadcast(this, 192837, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 		
@@ -123,7 +125,8 @@ public class LocationActivity extends Activity
 
 	protected void unregisterReceiver ()
 	{
-		Log.d(this.getClass().getCanonicalName(), "Unregistered background updater");
+		Toast.makeText(this, "Unregistered background updater", Toast.LENGTH_SHORT).show();
+		
 		AlarmManager am = (AlarmManager) this.getSystemService(ALARM_SERVICE);
 		am.cancel(_pi);
 	}
