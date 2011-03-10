@@ -1,5 +1,6 @@
 package com.kiha.location.transponder;
 
+import android.content.Context;
 import android.content.SharedPreferences;
 
 public class AppConfiguration
@@ -12,10 +13,16 @@ public class AppConfiguration
 	private static final int DEFAULT_CONNECTION_TIMEOUT = 5000;
 	private static final int DEFAULT_MIN_DISTANCE = 5; // Meters
 	private static final boolean DEFAULT_CONSERVE_BATTERY = false;
+	private static final long DEFAULT_BACKGROUND_UPDATE_INTERVAL = 60 * 1000; // Millisecs
 	
 	public AppConfiguration (SharedPreferences prefs)
 	{
 		_prefs = prefs;
+	}
+	
+	public AppConfiguration (Context context)
+	{
+		_prefs = context.getSharedPreferences(context.getString(R.string.app_name), Context.MODE_PRIVATE);
 	}
 	
 	public String getLocationServiceUrl ()
@@ -46,5 +53,10 @@ public class AppConfiguration
 	public boolean getConserveBatteryMode ()
 	{
 		return _prefs.getBoolean("conserve-battery", DEFAULT_CONSERVE_BATTERY);
+	}
+	
+	public long getBackgroundUpdateInterval ()
+	{
+		return _prefs.getLong("background-update-interval", DEFAULT_BACKGROUND_UPDATE_INTERVAL);
 	}
 }
