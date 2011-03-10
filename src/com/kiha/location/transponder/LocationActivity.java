@@ -37,6 +37,7 @@ public class LocationActivity extends Activity
 	private LocationListener _locationListener;
 	private LocationController _lc;
 	private WebView _webview;
+	private Button _sendButton;
 	private Button _stopButton;
 	private PendingIntent _pi;
 	
@@ -72,7 +73,17 @@ public class LocationActivity extends Activity
 		// --------------------------
 		setContentView(R.layout.main);
 		_webview = (WebView) findViewById(R.id.webview);
+		_sendButton = (Button) findViewById(R.id.send_button);
 		_stopButton = (Button) findViewById(R.id.stop_button);
+
+		OnClickListener sendButtonListener = new OnClickListener() {
+		    public void onClick (View v)
+		    {
+		    	displayNow();
+		    }
+		};
+
+		_sendButton.setOnClickListener(sendButtonListener);
 
 		OnClickListener stopButtonListener = new OnClickListener() {
 		    public void onClick (View v)
@@ -145,7 +156,12 @@ public class LocationActivity extends Activity
 		locationManager.removeUpdates(_locationListener);
 	}
 	
-	public void displayActions (Location curLocation)
+	protected void displayNow ()
+	{
+		displayActions(_lc.getBestLastKnownLocation());
+	}
+	
+	protected void displayActions (Location curLocation)
 	{
 		Log.d(this.getClass().getCanonicalName(), "*** displayActions() called");
 
@@ -187,19 +203,19 @@ public class LocationActivity extends Activity
 	    temp.append(date.toLocaleString()).append(":  ").append(" url=").append(url).append(" -> ").append(responseCode);
 	    html.append(TextUtils.htmlEncode(temp.toString()));
 	    html.append("<br/><br/>");
-	    html.append("<b>Relevant Actions</b><br/>");
+	    html.append("<b>Relevant Actions</b><br/><ul>");
 	    for (int i=0; i < actions.length(); ++i) {
 	    	try {
 		    	JSONObject action = actions.getJSONObject(i);
 		    	JSONObject actionAttribs = action.getJSONObject("attributes");
 		    	String actionUrl = actionAttribs.getString("action-url");
-		    	html.append("<a href=\"").append(actionUrl).append("\">").append(actions.getJSONObject(i).getString("label")).append("</a><br/>");
+		    	html.append("<li><a href=\"").append(actionUrl).append("\">").append(actions.getJSONObject(i).getString("label")).append("</a></li>");
 	    	} catch (JSONException e) {
 	    		html.append("Failed to parse JSON object ").append(i).append(e);
 	    	}
 	    }
 	    
-	    html.append("</body></html>");
+	    html.append("</ul></body></html>");
 	    String output = html.toString();
 	    Log.d(this.getClass().getCanonicalName(), "*** displayActions() status=" + output);
 		_webview.loadData(output, "text/html", "UTF-8");

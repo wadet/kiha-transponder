@@ -73,6 +73,14 @@ public class LocationController
 	
 	    return result;
 	}
+	
+	public Location getBestLastKnownLocation ()
+	{
+		LocationManager locationManager = (LocationManager) _context.getSystemService(Context.LOCATION_SERVICE);
+		Location lastKnownNetworkLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+		Location lastKnownGPSLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+		return isBetterLocation(lastKnownGPSLocation, lastKnownNetworkLocation) ? lastKnownGPSLocation : lastKnownNetworkLocation;
+	}
 
 	// -----------------------------------------------------------------------
 
