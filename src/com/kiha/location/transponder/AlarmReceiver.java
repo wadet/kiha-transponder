@@ -12,14 +12,16 @@ import android.util.Log;
 public class AlarmReceiver extends BroadcastReceiver
 {
 	private LocationListener _locationListener;
-	private LocationController _lc;
 	private Context _context;
+	private LocationController _lc;
+	private AppConfiguration _appConfig;
 
 	@Override
 	public void onReceive (Context context, Intent intent)
 	{
 		_context = context;
 		_lc = new LocationController(context);
+		_appConfig = new AppConfiguration(context);
 
 		// Define a listener that responds to location updates
 		_locationListener = new LocationListener() {
@@ -46,8 +48,8 @@ public class AlarmReceiver extends BroadcastReceiver
 	protected void registerListeners ()
 	{
 		LocationManager locationManager = (LocationManager) _context.getSystemService(Context.LOCATION_SERVICE);
-		locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, _locationListener);		
-		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, _locationListener);		
+		locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, _appConfig.getMinDistance(), _locationListener);		
+		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, _appConfig.getMinDistance(), _locationListener);		
 	}
 	
 	protected void unregisterListeners ()
