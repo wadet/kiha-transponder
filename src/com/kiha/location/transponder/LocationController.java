@@ -105,7 +105,7 @@ public class LocationController
 	    sb.append("&client-id=");
 	    sb.append(URLEncoder.encode(tMgr.getDeviceId(), "UTF-8"));
 	    sb.append("&timestamp=");
-	    sb.append(URLEncoder.encode(Long.toString(System.currentTimeMillis()), "UTF-8"));
+	    sb.append(URLEncoder.encode(Long.toString(location.getTime()), "UTF-8"));
 	    return sb.toString();
 	}
 
@@ -137,20 +137,8 @@ public class LocationController
 	        return true;
 	    }
 
-	    // Check whether the new location fix is newer or older
 	    long timeDelta = location.getTime() - currentBestLocation.getTime();
-	    boolean isSignificantlyNewer = timeDelta > _appConfig.getSampleInterval();
-	    boolean isSignificantlyOlder = timeDelta < -_appConfig.getSampleInterval();
 	    boolean isNewer = timeDelta > 0;
-
-	    // If it's been more than two minutes since the current location, use the new location
-	    // because the user has likely moved
-	    if (isSignificantlyNewer) {
-	        return true;
-	    // If the new location is more than two minutes older, it must be worse
-	    } else if (isSignificantlyOlder) {
-	        return false;
-	    }
 
 	    // Check whether the new location fix is more or less accurate
 	    int accuracyDelta = (int) (location.getAccuracy() - currentBestLocation.getAccuracy());
@@ -170,6 +158,17 @@ public class LocationController
 	    } else if (isNewer && !isSignificantlyLessAccurate && isFromSameProvider) {
 	        return true;
 	    }
+
+	    // Lastly, check whether the new location fix is newer or older
+	    boolean isSignificantlyNewer = timeDelta > _appConfig.getMaxLocationAge();
+	    boolean isSignificantlyOlder = timeDelta < -_appConfig.getMaxLocationAge();
+	    
+	    if (isSignificantlyNewer) {
+	        return true;
+	    } else if (isSignificantlyOlder) {
+	        return false;
+	    }
+
 	    return false;
 	}
 
